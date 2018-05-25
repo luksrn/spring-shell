@@ -37,10 +37,17 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.validation.Validation;
+import javax.validation.Validator;
+import javax.validation.ValidatorFactory;
+import javax.validation.metadata.MethodDescriptor;
+import javax.validation.metadata.ParameterDescriptor;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.TypeDescriptor;
+import org.springframework.core.env.Environment;
 import org.springframework.shell.CompletionContext;
 import org.springframework.shell.CompletionProposal;
 import org.springframework.shell.ParameterDescription;
@@ -53,10 +60,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.ConcurrentReferenceHashMap;
 import org.springframework.util.ObjectUtils;
-
-import javax.validation.*;
-import javax.validation.metadata.MethodDescriptor;
-import javax.validation.metadata.ParameterDescriptor;
 
 /**
  * Default ParameterResolver implementation that supports the following features:
@@ -91,6 +94,9 @@ import javax.validation.metadata.ParameterDescriptor;
 @Component
 public class StandardParameterResolver implements ParameterResolver {
 
+
+	private final Environment environment;
+	
 	private final ConversionService conversionService;
 
 	private Collection<ValueProvider> valueProviders = new HashSet<>();
@@ -101,18 +107,20 @@ public class StandardParameterResolver implements ParameterResolver {
 	 * every invocation if needed (e.g. if a remote service is involved).
 	 */
 	private final Map<CacheKey, Map<Parameter, ParameterRawValue>> parameterCache = new ConcurrentReferenceHashMap<>();
-
+	
+	private Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+	
+	
 	@Autowired
-	public StandardParameterResolver(ConversionService conversionService) {
+	public StandardParameterResolver(ConversionService conversionService,Environment environment) {
 		this.conversionService = conversionService;
+		this.environment = environment;
 	}
 
 	@Autowired(required = false)
 	public void setValueProviders(Collection<ValueProvider> valueProviders) {
 		this.valueProviders = valueProviders;
 	}
-
-	private Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
 	@Autowired(required = false)
 	public void setValidatorFactory(ValidatorFactory validatorFactory) {
@@ -130,7 +138,7 @@ public class StandardParameterResolver implements ParameterResolver {
 	@Override
 	public ValueResult resolve(MethodParameter methodParameter, List<String> wordsBuffer) {
 		String prefix = prefixForMethod(methodParameter.getMethod());
-
+		
 		List<String> words = wordsBuffer.stream().filter(w -> !w.isEmpty()).collect(Collectors.toList());
 
 		CacheKey cacheKey = new CacheKey(methodParameter.getMethod(), wordsBuffer);
@@ -206,6 +214,11 @@ public class StandardParameterResolver implements ParameterResolver {
 					else {
 						Optional<String> defaultValue = defaultValueFor(parameter);
 						defaultValue.ifPresent(
+								value -> result.put(parameter, ParameterRawValue.implicit(value, null, null, null)));
+						
+						// Overrided by external value?
+						Optional<String> externalValue = externalValueFor(parameter);
+						externalValue.ifPresent(
 								value -> result.put(parameter, ParameterRawValue.implicit(value, null, null, null)));
 					}
 				}
@@ -283,6 +296,15 @@ public class StandardParameterResolver implements ParameterResolver {
 		else if (getArity(parameter) == 0) {
 			return Optional.of("false");
 		}
+		return Optional.empty();
+	}
+	
+	private Optional<String> externalValueFor(Parameter parameter) {
+		ShellOption option = parameter.getAnnotation(ShellOption.class);
+		if (option != null && !ShellOption.NONE.equals(option.externalValue())) {
+			return Optional.ofNullable(environment.getProperty(option.externalValue()));
+		}
+		
 		return Optional.empty();
 	}
 

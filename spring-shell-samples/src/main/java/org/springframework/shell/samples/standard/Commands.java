@@ -79,6 +79,11 @@ public class Commands {
 	public double addDoubles(@ShellOption(arity = 3) double[] numbers) {
 		return Arrays.stream(numbers).sum();
 	}
+	
+	@ShellMethod("Say hello to...")
+	public void greeting(@ShellOption(defaultValue="World",externalValue="samples.commands.greeting.who") String who) {
+		System.out.println("Hello, " + who);
+	}
 }
 
 /**

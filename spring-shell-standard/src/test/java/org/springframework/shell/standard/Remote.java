@@ -37,13 +37,14 @@ public class Remote {
 	 *     <li>default handling for booleans (force)</li>
 	 *     <li>default parameter name discovery (name)</li>
 	 *     <li>default value supplying (foo and bar)</li>
+	 *     <li>default value provided by external enviroment properties (bar), overriding defaultValue</li>
 	 * </ul>
 	 */
 	@ShellMethod(value = "switch channels")
 	public void zap(boolean force,
 	                String name,
 	                @ShellOption(defaultValue="defoolt") String foo,
-	                @ShellOption(value = {"--bar", "--baz"}, defaultValue = "last") String bar) {
+	                @ShellOption(value = {"--bar", "--baz"}, defaultValue = "last",externalValue="remote.zap.bar") String bar) {
 	}
 
 	@ShellMethod(value = "bye bye")

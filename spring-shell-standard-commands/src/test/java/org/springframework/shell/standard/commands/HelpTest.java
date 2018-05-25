@@ -37,6 +37,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.shell.Command;
 import org.springframework.shell.standard.StandardParameterResolver;
 import org.springframework.shell.MethodTarget;
@@ -136,7 +137,7 @@ public class HelpTest {
 
 		@Bean
 		public ParameterResolver parameterResolver() {
-			return new StandardParameterResolver(new DefaultConversionService());
+			return new StandardParameterResolver(new DefaultConversionService(), new MockEnvironment());
 		}
 
 		@Bean

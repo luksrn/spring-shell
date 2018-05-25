@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.core.env.Environment;
 import org.springframework.shell.CommandRegistry;
 import org.springframework.shell.MethodTargetRegistrar;
 import org.springframework.shell.ParameterResolver;
@@ -54,7 +55,7 @@ public class StandardAPIAutoConfiguration {
 	}
 
 	@Bean
-	public ParameterResolver standardParameterResolver(@Qualifier("spring-shell") ConversionService conversionService) {
-		return new StandardParameterResolver(conversionService);
+	public ParameterResolver standardParameterResolver(@Qualifier("spring-shell") ConversionService conversionService, Environment env) {
+		return new StandardParameterResolver(conversionService,env);
 	}
 }

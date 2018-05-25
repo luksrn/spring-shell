@@ -31,7 +31,10 @@ import org.jline.reader.impl.DefaultParser;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.expression.StandardBeanExpressionResolver;
 import org.springframework.core.convert.support.DefaultConversionService;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.shell.CompletionContext;
 import org.springframework.shell.CompletionProposal;
 import org.springframework.shell.ParameterMissingResolutionException;
@@ -49,7 +52,9 @@ public class StandardParameterResolverTest {
 	@Rule
 	public ExpectedException thrown = ExpectedException.none();
 
-	private StandardParameterResolver resolver = new StandardParameterResolver(new DefaultConversionService());
+	private MockEnvironment environment = new MockEnvironment();
+	
+	private StandardParameterResolver resolver = new StandardParameterResolver(new DefaultConversionService(), environment );
 
 	// Tests for resolution
 
@@ -97,6 +102,32 @@ public class StandardParameterResolverTest {
 		);
 	}
 
+	@Test
+	public void testParameterSpecifiedByExternalEnviromentProperties() throws Exception {
+		
+		environment.withProperty("remote.zap.bar", "externalValue");
+		
+		Method method = findMethod(Remote.class, "zap", boolean.class, String.class, String.class, String.class);
+
+		List<String> words = asList("--force --name --foo y".split(" "));
+		
+		ValueResult result3 = resolver.resolve(Utils.createMethodParameter(method, 3), words);
+		assertThat(result3).hasValue("externalValue").notUsesWords().notUsesWordsForValue();
+	}
+
+	@Test
+	public void testParameterSpecifiedByUserEvenIfExternalEnviromentPropertiesIsAvailable() throws Exception {
+		
+		environment.withProperty("remote.zap.bar", "externalValue");
+		
+		Method method = findMethod(Remote.class, "zap", boolean.class, String.class, String.class, String.class);
+
+		List<String> words = asList("--bar user-bar".split(" "));
+		
+		ValueResult result3 = resolver.resolve(Utils.createMethodParameter(method, 3), words);
+		assertThat(result3).hasValue("user-bar").notUsesWords().notUsesWordsForValue();
+	}
+	
 	@Test
 	public void testParameterSpecifiedTwiceViaSameKey() throws Exception {
 		Method method = findMethod(Remote.class, "zap", boolean.class, String.class, String.class, String.class);

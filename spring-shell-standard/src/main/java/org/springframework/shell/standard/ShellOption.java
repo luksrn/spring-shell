@@ -71,6 +71,13 @@ public @interface ShellOption {
 	String defaultValue() default NONE;
 
 	/**
+	 * Property used to resolve the value to this parameter by searching external environments properties. This value will be used
+	 * if no value is provided by the user, even if {@link ShellOption#defaultValue()} is defined.
+	 * .	 
+	 * @return the value defined by external enviroment properties.
+	 */
+	String externalValue() default NONE;
+	/**
 	 * Return a short description of the parameter.
 	 * @return description of the parameter
 	 */
